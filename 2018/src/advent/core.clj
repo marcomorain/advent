@@ -60,14 +60,49 @@ ids
 (box-id "bababc")
 
 (def box-ids (set (flatten (for [a day2
-                    b day2
-                    :when (diffs a b)]
-                [a b]))))
+                                 b day2
+                                 :when (diffs a b)]
+                             [a b]))))
 
 
-          box-ids
+box-ids
 
 
-(prn (apply str (map first  (filter #(apply = %) (partition 2 (apply interleave box-ids ))))))
+(prn (apply str (map first  (filter #(apply = %) (partition 2 (apply interleave box-ids))))))
 
 (filter (fn [[a b]] (not= a b)) (map vector box-ids))
+
+(defn parse-claim [^String claim]
+  (apply hash-map
+         (interleave [:id :x :y :w :h]
+                     (map ->long (rest (re-matches #"#(\d*) @ (\d+),(\d+): (\d+)x(\d+)" claim))))))
+
+(parse-claim "#8 @ 869,850: 17x19")
+
+(def claims
+  (map parse-claim (s/split-lines (slurp "input/3"))))
+
+(defn squares [{:keys [id x y w h]}]
+  (reduce merge (for [i (range x (+ x w))
+        j (range y (+ y h))]
+    {[i j] id})))
+
+(defn overlap?  [ax aw bx bw]
+  (or (< ax bx (+ ax aw))
+      (< bx ax (+ bx bw))))
+
+(defn intersect? [a b]
+  (and (overlap? (:x a) (:w a) (:x b) (:w b))
+       (overlap? (:y a) (:h a) (:y b) (:h b))))
+
+(for [a claims
+      b claims
+      :when (and (not= (:id a) (:id b)
+                       )
+                 (intersect? a b)
+                 )
+    ]
+     
+     
+     
+     )
