@@ -10,7 +10,6 @@
 (def ops {1 +
           2 *})
 
-
 (defn run [program]
   (loop [state program
          [op-code & r] program]
