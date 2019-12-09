@@ -108,14 +108,14 @@
 
 (op-codes "1,2,3")
 
-(defn run-re-entrant [{:keys [memory pc input output] :as foo}]
+(defn run-re-entrant [{:keys [memory pc input output status] :as foo}]
   (let [[instruction p1 p2 p3] (drop pc memory)
         [op-code m1 m2 _m3] (decode instruction)]
       ;(printf "op=%d m1=%d m2=%d m3=%d\n" op-code m1 m2 m3)
       ;(debug state)
     (case op-code
       99
-      (assoc foo :pc :done)
+      (assoc foo :status :done)
 
       (1 2)
       (let [result ((get ops op-code)
@@ -189,9 +189,10 @@
 (defn run2 [program input]
   (loop [state {:memory program
                 :pc 0
+                :status :running
                 :input input
                 :output []}]
     (let [next (run-re-entrant state)]
-      (if (= (:pc next) :done)
+      (if (= (:status next) :done)
         (:output next)
         (recur next)))))

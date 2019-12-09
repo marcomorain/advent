@@ -9,7 +9,6 @@
 
 (def input (slurp "input/day5.txt"))
 
-
 (deftest intcode-test
   (is (= [3 0 0 0 0 0 0 0 0 13346482]
          (intcode/run2 (intcode/op-codes input) [1])))
