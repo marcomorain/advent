@@ -40,26 +40,33 @@
       (prn)))
 
 (defn run-amplifiers-linked [op-codes phases]
-  (let [amplifiers (mapv (fn [phase]
-                           {:memory op-codes
-                            :input [phase]
-                            :output []
-                            :pc 0}) phases)
-        amplifiers (update-in amplifiers [0 :input] conj 0)]
-    (loop [amplifiers amplifiers
-           depth 100]
+  
+  (try
+    (let [amplifiers (mapv (fn [phase]
+                             {:memory op-codes
+                              :input [phase]
+                              :status :running
+                              :output []
+                              :pc 0}) phases)
+          amplifiers (update-in amplifiers [0 :input] conj 0)]
+      (loop [amplifiers amplifiers
+             depth 100]
       ; #_(doseq [a amplifiers]
       ;   (dbg a))
       ; #_(println)
-      (if (and (= :done (:status (first amplifiers)))
-               (seq (:input (first amplifiers))))
-        (first (:input (first amplifiers)))
-        (recur (map
-                (fn [prev-a this-a]
-                  (intcode/run-re-entrant (pass-input prev-a this-a)))
-                (drop 4 (cycle amplifiers))
-                amplifiers)
-               (dec depth))))))
+        (if (and (= :done (:status (first amplifiers)))
+                 (seq (:input (first amplifiers))))
+          (first (:input (first amplifiers)))
+          (recur (map
+                  (fn [prev-a this-a]
+                    (intcode/run-re-entrant (pass-input prev-a this-a)))
+                  (drop 4 (cycle amplifiers))
+                  amplifiers)
+                 (dec depth)))))
+    
+    (catch Throwable t
+      (prn t))
+    ))
 
 (deftest part-one
   (is (= 43210
@@ -86,7 +93,7 @@
               :when (= 5 (count (set [a b c d e])))]
           (run-amplifiers op-codes
                           [a b c d e]))]
-    (is (= 12111395 (apply max ranges)))))
+    (is (= 47064 (apply max ranges)))))
 
 
 (deftest part-two
@@ -113,5 +120,4 @@
                                  [a b c d e]))]
     (is (= 4248984 (apply max ranges)))))
 
-
-(test-var #'part-two)
+(run-tests)

@@ -11,9 +11,9 @@
 
 (deftest intcode-test
   (is (= [3 0 0 0 0 0 0 0 0 13346482]
-         (intcode/run2 (intcode/op-codes input) [1])))
+         (intcode/run (intcode/op-codes input) [1])))
 
   (is (= [12111395]
-         (intcode/run2 (intcode/op-codes input) [5]))))
+         (intcode/run (intcode/op-codes input) [5]))))
 
 (run-tests)
