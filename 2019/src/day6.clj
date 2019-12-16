@@ -1,21 +1,18 @@
 (ns day6
   (:require
+   [core]
    [clojure.repl :refer :all]
    [clojure.string :as str]
    [clojure.java.io :as io]
    [clojure.set :as set]
-   [clojure.test :refer :all])
-  (:import [java.io StringReader
-            BufferedReader]))
+   [clojure.test :refer :all]))
 
 (def lines
   (io/reader "input/day6.txt"))
 
-
 (def sample
-  (BufferedReader.
-   (StringReader.
-    "COM)B
+  (core/string-reader
+   "COM)B
 B)C
 C)D
 D)E
@@ -27,7 +24,7 @@ E)J
 J)K
 K)L
 K)YOU
-I)SAN")))
+I)SAN"))
 
 (defn parse [input-reader]
   (into {} (for [line (line-seq input-reader)]

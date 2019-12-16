@@ -17,14 +17,24 @@
    (int (mod (/ instruction 1000)  10))
    (int (mod (/ instruction 10000) 10))])
 
-(defn fetch [memory reg mode]
+(defn fetch [memory base-offset reg mode]
   (let [result (case mode
-                 0 (get memory reg)
-                 1 reg)]
+                 0 (get memory reg 0)
+                 1 reg
+                 2 (get memory (+ base-offset reg) 0))]
     ;(printf "Reading mode=%d reg=%d res=%d\n" mode reg result)
     result))
 
-(decode 1002)
+(defn store [memory base-offset reg mode val]
+  (let [address (case mode
+                  0 reg
+                  2 (+ base-offset reg))
+        growth (- address (count memory))]
+    (assoc (if (pos? growth)
+             (into [] (concat memory (repeat growth 0)))
+             memory) address val)))
+
+(decode 21107)
 
 (defn debug [state]
   (doseq [mem (take 16 state)]
@@ -39,32 +49,32 @@
 
 (op-codes "1,2,3")
 
-
 (s/def ::memory (s/coll-of int? :kind sequential?))
 (s/def ::pc nat-int?)
+(s/def ::base-offset nat-int?)
 (s/def ::input (s/coll-of int? :kind sequential?))
 (s/def ::output (s/coll-of int? :kind sequential?))
 (s/def ::status #{:done :running})
 (s/def ::state (s/keys :req-un [::memory ::pc ::input ::output ::status]))
-
 
 (defn valid-state? [state]
   (if (s/valid? ::state state)
     true
     (throw (ex-info "spec error" (s/explain-data ::state state)))))
 
-(defn run-re-entrant [{:keys [memory pc input output status] :as state}]
+(defn run-re-entrant [{:keys [memory pc input output base-offset status] :as state}]
   {:pre  [(valid-state? state)]
-   :post [(valid-state? %)]}  
+   :post [(valid-state? %)]}
   (let [[instruction p1 p2 p3] (drop pc memory)
-        [op-code m1 m2 _m3] (decode instruction)]
+        [op-code m1 m2 m3] (decode instruction)]
       ;(printf "op=%d m1=%d m2=%d m3=%d\n" op-code m1 m2 m3)
-      ;(debug state)
-    (case op-code
+      ;(debug memory)
+    (try
 
+      (case op-code
       ;; 99 means that the program is finished and should immediately halt.
-      99
-      (assoc state :status :done)
+        99
+        (assoc state :status :done)
 
       ;; Opcode 1 adds together numbers read from two positions and stores the
       ;; result in a third position. The three integers immediately after the
@@ -74,76 +84,92 @@
       ;;  Opcode 2 works exactly like opcode 1, except it multiplies the two 
       ;; inputs instead of adding them. Again, the three integers after the
       ;; opcode indicate where the inputs and outputs are, not their values.
-      (1 2)
-      (let [result ((get ops op-code)
-                    (fetch memory p1 m1)
-                    (fetch memory p2 m2))]
+        (1 2)
         (assoc state
-               :memory (assoc memory p3 result)
-               :pc (+ pc 1 3)))
+               :memory (store memory base-offset p3 m3 ((get ops op-code)
+                                                        (fetch memory base-offset p1 m1)
+                                                        (fetch memory base-offset p2 m2)))
+               :pc (+ pc 1 3))
 
       ;; Opcode 3 takes a single integer as input and saves it to the position
       ;; given by its only parameter. For example, the instruction 3,50 would
       ;; take an input value and store it at address 50.
-      3
-      (if (first input)
-        (assoc state
-               :input (rest input)
-               :memory (assoc memory p1 (first input))
-               :pc (+ pc 1 1))
+        3
+        (do
+          (printf "op=%d i=%s p1=%s m1=%d pc=%d offset=%s\n" op-code input p1 m1 pc base-offset)
+          (debug memory)
+          (if (first input)
+            (assoc state
+                   :input (rest input)
+                   :memory (store memory base-offset p1 m1 (first input))
+                   :pc (+ pc 1 1))
 
-        state)
+            state))
 
       ;; Opcode 4 outputs the value of its only parameter. For example, the
       ;; instruction 4,50 would output the value at address 50.
-      4
-      (assoc state
-             :pc (+ pc 1 1)
-             :output (conj output (get memory p1)))
+        4
+        (assoc state
+               :pc (+ pc 1 1)
+               :output (conj output (fetch memory base-offset p1 m1)))
 
       ;; Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets
       ;; the instruction pointer to the value from the second parameter.
       ;; Otherwise, it does nothing.
-      5
-      (assoc state
-             :pc (if (not (zero? (fetch memory p1 m1)))
-                   (fetch memory p2 m2)
-                   (+ pc 1 2)))
+        5
+        (assoc state
+               :pc (if (not (zero? (fetch memory base-offset p1 m1)))
+                     (fetch memory base-offset p2 m2)
+                     (+ pc 1 2)))
 
       ;; Opcode 6 is jump-if-false: if the first parameter is zero, it sets the
       ;; instruction pointer to the value from the second parameter. Otherwise,
       ;; it does nothing.
-      6
-      (assoc state
-             :pc (if (zero? (fetch memory p1 m1))
-                   (fetch memory p2 m2)
-                   (+ pc 1 2)))
+        6
+        (assoc state
+               :pc (if (zero? (fetch memory base-offset p1 m1))
+                     (fetch memory base-offset p2 m2)
+                     (+ pc 1 2)))
 
       ;; Opcode 7 is less than: if the first parameter is less than the second
       ;; parameter, it stores 1 in the position given by the third parameter.
       ;; Otherwise, it stores 0.
-      7
-      (assoc state
-             :memory (assoc memory p3
-                            (if (< (fetch memory p1 m1)
-                                   (fetch memory p2 m2))
-                              1
-                              0))
-             :pc (+ pc 1 3))
+        7
+        (assoc state ;; todo
+               :memory (store memory base-offset p3 m3
+                              (if (< (fetch memory base-offset p1 m1)
+                                     (fetch memory base-offset p2 m2))
+                                1
+                                0))
+               :pc (+ pc 1 3))
 
       ;; Opcode 8 is equals: if the first parameter is equal to the second
       ;; parameter, it stores 1 in the position given by the third parameter.
       ;; Otherwise, it stores 0.
-      8
-      (assoc state
-             :memory (assoc memory p3
-                            (if (= (fetch memory p1 m1)
-                                   (fetch memory p2 m2))
-                              1
-                              0))
-             :pc (+ pc 1 3)))))
+        8
+        (assoc state
+               :memory (store memory base-offset p3 m3
+                              (if (= (fetch memory base-offset p1 m1)
+                                     (fetch memory base-offset p2 m2))
+                                1
+                                0))
+               :pc (+ pc 1 3))
 
-(defn run [program input]
+      ;; Opcode 9 adjusts the relative base by the value of its only parameter.
+      ;; The relative base increases (or decreases, if the value is negative)
+      ;; by the value of the parameter.
+        9
+        (do
+          (printf "adjusting offset offset=%d p=%d m=%d\n" base-offset p1 m1)
+          (assoc state
+                 :base-offset (+ base-offset (fetch memory base-offset p1 m1))
+                 :pc (+ pc 1 1))))
+      (catch Exception e
+        (throw (ex-info "error" state e))))))
+
+(defn run*
+  "Return the final state."
+  [program input]
   (loop [state {:memory program
                 :pc 0
                 :base-offset 0
@@ -152,5 +178,10 @@
                 :output []}]
     (let [next (run-re-entrant state)]
       (if (= (:status next) :done)
-        (:output next)
+        next
         (recur next)))))
+
+(defn run [program input]
+  (:output (run* program input)))
+
+(run-all-tests)
