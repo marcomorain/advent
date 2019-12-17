@@ -6,10 +6,7 @@
    [clojure.string :as str]
    [clojure.java.io :as io]
    [clojure.test :refer :all]
-   [intcode :as intcode])
-  (:import [javax.imageio ImageIO]
-           [java.awt.image BufferedImage]
-           [java.awt Color]))
+   [intcode :as intcode]))
 
 (defn find-asteroids [reader]
   (->>

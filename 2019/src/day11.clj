@@ -14,7 +14,7 @@
 (def up    [0  -1])
 (def down  [0   1])
 (def left  [-1  0])
-(def right [ 1  0])
+(def right [1  0])
 
 (def turn-left 0)
 (def turn-right 1)
@@ -45,16 +45,15 @@
                     :direction up
                     :color black})
 
-(defn robot [program]
+(defn robot [program brain]
   (loop [state (intcode/init-state program [0])
-         brain initial-brain
+         brain brain
          output-read 0]
-    (let [next-state (intcode/run-re-entrant state)
-          output-available (drop output-read (:ouput state))]
-      ;(prn (select-keys next [:pc :input :ouput]) position direction output (count panels))
-      ;(clojure.pprint/pprint state)
+    (let [input [(:color brain)]
+          next-state (intcode/run-re-entrant (assoc state :input input))
+          output-available (drop output-read (:output state))]
       (case (:status next-state)
-        :done (:panels brain)
+        :done brain
         :running (if (< 1 (count output-available))
                    (recur next-state
                           (next-steps output-available brain)
@@ -63,11 +62,29 @@
                           brain
                           output-read))))))
 
+(< 1 1)
 
 (def input (slurp "input/day11.txt"))
 
-(count (robot (intcode/op-codes input)))
+
+
+(def result (robot (intcode/op-codes input)
+                   {:panels {[0 0] white}
+                    :position [0 0]
+                    :direction up
+                    :color white}))
+                   
+
+(count (:panels result))
 ;(map + [1 1] [3 5])
+
+(defn inputs [steps]
+  (into []
+        (concat (mapcat vector (repeat 104) steps)
+                [99])))
+
+(is (= [104 1 104 2 104 3 99]
+       (inputs [1 2 3])))
 
 (deftest part1
 
@@ -104,16 +121,43 @@
 
     (is (= step-2
            (next-steps [black turn-left] step-1)))
-    
+
     (is (= step-3
            (->> step-2
                 (next-steps [white turn-left])
                 (next-steps [white turn-left]))))
-    
+
     (is (= step-4
            (->> step-3
                 (next-steps [black turn-right])
                 (next-steps [white turn-left])
-                (next-steps [white turn-left]))))))
+                (next-steps [white turn-left]))))
+
+
+    (is (= step-4
+           (robot 
+            [104 1 104 0 3 0
+             104 0 104 0 3 1
+             104 1 104 0 3 2
+             104 1 104 0 3 3
+             104 0 104 1 3 4
+             104 1 104 0 3 5
+             104 1 104 0 3 6
+             99]
+            step-0)))))
+
 
 (run-tests)
+
+
+       
+       (apply max (map second (keys (:panels result))))
+
+
+(let [img (BufferedImage. 100 100 BufferedImage/TYPE_INT_RGB)]
+  (doseq [[[x y] col] (:panels result)]
+    (.setRGB img x y (.getRGB (case col
+                                0 Color/BLACK
+                                1 Color/WHITE))))
+  
+  (ImageIO/write img "png", (io/file "img.png")))

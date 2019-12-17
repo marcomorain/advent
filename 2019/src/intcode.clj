@@ -157,7 +157,7 @@
       ;; by the value of the parameter.
         9
         (do
-          (printf "adjusting offset offset=%d p=%d m=%d\n" base-offset p1 m1)
+          #_(printf "adjusting offset offset=%d p=%d m=%d\n" base-offset p1 m1)
           (assoc state
                  :base-offset (+ base-offset (fetch memory base-offset p1 m1))
                  :pc (+ pc 1 1))))

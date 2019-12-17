@@ -5,11 +5,7 @@
    [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.test :refer :all]
-   [intcode :as intcode])
-  (:import [java.io StringReader BufferedReader]
-           [javax.imageio ImageIO]
-           [java.awt.image BufferedImage]
-           [java.awt Color]))
+   [intcode :as intcode]))
 
 (def input
   (slurp "input/day9.txt"))
