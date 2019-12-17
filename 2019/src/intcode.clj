@@ -2,11 +2,8 @@
   (:require
    [clojure.repl :refer :all]
    [clojure.string :as str]
-   [clojure.java.io :as io]
-   [clojure.set :as set]
    [clojure.spec.alpha :as s]
-   [clojure.test :refer :all])
-  (:import [java.util.concurrent LinkedBlockingQueue BlockingQueue]))
+   [clojure.test :refer :all]))
 
 (def ops {1 +
           2 *})
@@ -42,7 +39,7 @@
   (println))
 
 (defn ->int [s]
-  (Integer/parseInt s 10))
+  (Long/parseLong s 10))
 
 (defn op-codes [input]
   (mapv (comp ->int str/trim) (str/split input #",")))
@@ -96,8 +93,8 @@
       ;; take an input value and store it at address 50.
         3
         (do
-          (printf "op=%d i=%s p1=%s m1=%d pc=%d offset=%s\n" op-code input p1 m1 pc base-offset)
-          (debug memory)
+          ;(printf "op=%d i=%s p1=%s m1=%d pc=%d offset=%s\n" op-code input p1 m1 pc base-offset)
+          ;(debug memory)
           (if (first input)
             (assoc state
                    :input (rest input)
@@ -167,15 +164,18 @@
       (catch Exception e
         (throw (ex-info "error" state e))))))
 
+(defn init-state [program input]
+  {:memory program
+   :pc 0
+   :base-offset 0
+   :status :running
+   :input input
+   :output []})
+
 (defn run*
   "Return the final state."
   [program input]
-  (loop [state {:memory program
-                :pc 0
-                :base-offset 0
-                :status :running
-                :input input
-                :output []}]
+  (loop [state (init-state program input)]
     (let [next (run-re-entrant state)]
       (if (= (:status next) :done)
         next
@@ -183,5 +183,3 @@
 
 (defn run [program input]
   (:output (run* program input)))
-
-(run-all-tests)

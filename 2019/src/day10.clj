@@ -312,10 +312,8 @@
   (let [{:as target
          [x y] :location} (nth (lazer-input (io/reader "input/day10.txt") 14 17)
                                199)]
-    
+
     (is (= 608 (+ y (* 100 x))))
 
     (is (= {:angle [-8 -9], :location [6 8], :name \#, :i -8, :j -9, :degrees 2.4149503129080676, :gcd 1, :distance 17}
            target))))
-
-(run-tests)

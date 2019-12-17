@@ -43,11 +43,8 @@
   
   (try
     (let [amplifiers (mapv (fn [phase]
-                             {:memory op-codes
-                              :input [phase]
-                              :status :running
-                              :output []
-                              :pc 0}) phases)
+                             (intcode/init-state op-codes [phase]))
+                           phases)
           amplifiers (update-in amplifiers [0 :input] conj 0)]
       (loop [amplifiers amplifiers
              depth 100]
