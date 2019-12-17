@@ -1,4 +1,5 @@
-{:deps {org.clojure/data.csv {:mvn/version "0.1.4"}}
+{:deps {org.clojure/data.csv {:mvn/version "0.1.4"}
+        pjstadig/humane-test-output {:mvn/version "0.9.0"}}
  :paths ["src"]
  :aliases {:nREPL
            {:extra-deps

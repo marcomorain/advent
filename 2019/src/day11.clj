@@ -62,29 +62,22 @@
                           brain
                           output-read))))))
 
-(< 1 1)
-
 (def input (slurp "input/day11.txt"))
 
 
-
-(def result (robot (intcode/op-codes input)
+#_(def result (robot (intcode/op-codes input)
                    {:panels {[0 0] white}
                     :position [0 0]
                     :direction up
                     :color white}))
                    
 
-(count (:panels result))
-;(map + [1 1] [3 5])
+#_(count (:panels result))
 
 (defn inputs [steps]
   (into []
         (concat (mapcat vector (repeat 104) steps)
                 [99])))
-
-(is (= [104 1 104 2 104 3 99]
-       (inputs [1 2 3])))
 
 (deftest part1
 
@@ -147,14 +140,10 @@
             step-0)))))
 
 
-(run-tests)
+; (run-tests)
 
 
-       
-       (apply max (map second (keys (:panels result))))
-
-
-(let [img (BufferedImage. 100 100 BufferedImage/TYPE_INT_RGB)]
+#_(let [img (BufferedImage. 100 100 BufferedImage/TYPE_INT_RGB)]
   (doseq [[[x y] col] (:panels result)]
     (.setRGB img x y (.getRGB (case col
                                 0 Color/BLACK
